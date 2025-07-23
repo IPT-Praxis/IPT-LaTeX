@@ -1,0 +1,8 @@
+{
+  "Natural Gradient": {
+    "definition": "An optimization method that adjusts the gradient direction based on the Fisher information metric, aligning descent with the intrinsic geometry of the parameter space."
+  },
+  "Mirror Descent": {
+    "definition": "A generalization of gradient descent that performs updates in a dual space defined by a convex potential function, then maps back to the primal space using its conjugate gradient."
+  }
+}
