@@ -1,0 +1,58 @@
+name: Regenerate main.tex from toc.json
+
+on:
+  push:
+    paths:
+      - 'toc.json'
+
+jobs:
+  build-main-tex:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Generate main.tex
+        id: gen
+        run: |
+          python3 - << 'EOF'
+          import json
+          toc = json.load(open('toc.json'))
+          lines = [
+            r'\documentclass{book}',
+            r'\input{preamble.tex}',
+            r'\begin{document}'
+          ]
+          for sec in toc.get('sections', []):
+              fname = sec['filename']
+              lines.append(f"\\include{{sections/{fname[:-4]}}}")
+          lines.append(r'\end{document}')
+          content = "\n".join(lines) + "\n"
+          open('main.tex', 'w').write(content)
+          EOF
+
+      - name: Check for changes
+        id: diff
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git diff --quiet || echo "changed=true" >> $GITHUB_OUTPUT
+
+      - name: Commit main.tex if changed
+        if: steps.diff.outputs.changed == 'true'
+        run: |
+          git add main.tex
+          git commit -m "Auto-regenerate main.tex from toc.json"
+
+      - name: Push changes
+        if: steps.diff.outputs.changed == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git push origin HEAD:main
