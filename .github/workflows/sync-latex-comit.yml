@@ -1,0 +1,39 @@
+name: Sync LaTeX Section and Metadata
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'sections/**.tex'
+      - 'toc.json'
+      - 'glossary.json'
+
+jobs:
+  commit-to-main:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: Set Up Git
+        run: |
+          git config user.name "IPT-Praxis"
+          git config user.email "fractal.dreams@icloud.com"
+
+      - name: Fetch Latest Main SHA
+        id: sha
+        run: |
+          SHA=$(curl -s https://api.github.com/repos/IPT-Praxis/IPT-LaTeX/branches/main | jq -r .commit.sha)
+          echo "sha=$SHA" >> $GITHUB_OUTPUT
+
+      - name: Stage and Commit LaTeX Section + Metadata
+        run: |
+          git add sections/*.tex toc.json glossary.json || true
+          git diff --cached --quiet || git commit -m "Auto-sync new section and metadata with atomic SHA patch"
+
+      - name: Push Commit and Update Ref
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git push origin HEAD:refs/heads/main
